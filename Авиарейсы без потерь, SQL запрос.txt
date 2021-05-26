@@ -41,8 +41,7 @@ WITH general_flight_information AS
    LEFT JOIN dst_project.TICKET_FLIGHTS tik_fl ON fl.flight_id = tik_fl.flight_id
    LEFT JOIN dst_project.aircrafts arcrft ON fl.aircraft_code = arcrft.aircraft_code
    WHERE fl.departure_airport = 'AAQ'
-     AND Extract(MONTH
-                 FROM fl.scheduled_departure::date) in (1, 2 ,12)
+     AND (date_trunc('month', fl.scheduled_departure) in ('2017-01-01','2017-02-01', '2017-12-01'))
      AND fl.status not in ('Cancelled')
    GROUP BY fl.flight_id,
             tons_of_fuel_per_hour)
