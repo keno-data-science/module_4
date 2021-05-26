@@ -1,0 +1,207 @@
+4. Изучаем закономерности в данных
+
+//Задание 4.1
+
+SQL запрос:
+
+SELECT a.city,
+       count(a.airport_name)
+FROM dst_project.airports a
+GROUP BY a.city
+ORDER BY 2 DESC
+LIMIT 5
+
+Ответ: Moscow, Ulyanovsk
+
+//Задание 4.2.1
+
+SQL запрос:
+
+SELECT count(DISTINCT f.status)
+FROM dst_project.flights f
+
+Ответ:6
+
+//Задание 4.2.2
+
+SQL запрос:
+
+SELECT count(DISTINCT f.flight_id)
+FROM dst_project.flights f
+WHERE f.status = 'Departed'
+
+Ответ:58
+
+//Задание 4.2.3
+
+SQL запрос:
+
+SELECT count(DISTINCT s.seat_no)
+FROM dst_project.seats s
+JOIN dst_project.aircrafts ai ON s.aircraft_code = ai.aircraft_code
+WHERE ai.model = 'Boeing 777-300'
+
+Ответ:402
+
+//Задание 4.2.4
+
+SQL запрос:
+
+SELECT count(//)
+FROM dst_project.flights f
+WHERE (f.actual_arrival BETWEEN '2017-04-01' AND '2017-09-01')
+  AND (f.status = 'Arrived')
+  
+Ответ:74227
+
+//Задание 4.3.1
+
+SQL запрос:
+
+SELECT count(//)
+FROM dst_project.flights f
+WHERE f.status = 'Cancelled'
+
+Ответ:437
+
+//Задание 4.3.2
+
+SQL запрос:
+
+SELECT count(ai.model)
+FROM dst_project.aircrafts ai
+WHERE ai.model LIKE 'Boeing%'
+
+Ответ: Boeing:3
+
+SQL запрос:
+
+SELECT count(ai.model)
+FROM dst_project.aircrafts ai
+WHERE ai.model LIKE 'Sukhoi Superjet%'
+
+Sukhoi Superjet:1
+
+SQL запрос:
+
+SELECT count(ai.model)
+FROM dst_project.aircrafts ai
+WHERE ai.model LIKE 'Airbus%'
+
+Airbus:3
+
+//Задание 4.3.3
+
+SQL запрос:
+
+SELECT count(DISTINCT a.city),
+       'Asia' part_world
+FROM dst_project.airports a
+WHERE a.timezone LIKE 'Asia%'
+UNION ALL
+SELECT count(DISTINCT a.city),
+       'Europe' part_world
+FROM dst_project.airports a
+WHERE a.timezone LIKE 'Europe%'
+UNION ALL
+SELECT count(DISTINCT a.city),
+       'Asia&Europe' part_world
+FROM dst_project.airports a
+WHERE a.timezone LIKE 'Asia%'
+  OR a.timezone LIKE 'Europe%'
+UNION ALL
+SELECT count(DISTINCT a.city),
+       'Australia' part_world
+FROM dst_project.airports a
+WHERE a.timezone LIKE 'Australia'
+ORDER BY 1 DESC
+
+Ответ:Europe, Asia
+
+//Задание 4.3.4
+
+SQL запрос:
+
+SELECT f.flight_id,
+       (actual_arrival - scheduled_arrival) time_f
+FROM dst_project.flights f
+WHERE actual_arrival IS NOT NULL
+ORDER BY (actual_arrival - scheduled_arrival) DESC
+
+Ответ:157571
+
+//Задание 4.4.1
+
+SQL запрос:
+
+SELECT min(scheduled_departure)
+FROM dst_project.flights f
+WHERE scheduled_departure IS NOT NULL
+
+Ответ:14.08.2016
+
+//Задание 4.4.2
+
+SQL запрос:
+
+SELECT DISTINCT date_part('hour', f.scheduled_arrival-f.scheduled_departure) // 60 + date_part('minute', f.scheduled_arrival-f.scheduled_departure) time_dif
+FROM dst_project.flights f
+WHERE f.status != 'Cancelled'
+ORDER BY 1 DESC
+
+Ответ:530
+
+//Задание 4.4.3
+
+SQL запрос:
+SELECT DISTINCT (f.scheduled_arrival-f.scheduled_departure), f.departure_airport,
+                                                             f.arrival_airport,
+                                                             f.status
+FROM dst_project.flights f
+WHERE f.status = 'Scheduled'
+ORDER BY 1 DESC
+
+Ответ:DME - UUS
+
+//Задание 4.4.4
+
+SQL запрос:
+
+SELECT DISTINCT avg(f.actual_arrival-f.actual_departure)
+FROM dst_project.flights f
+WHERE f.actual_arrival IS NOT NULL
+  AND f.actual_departure IS NOT NULL
+  
+Ответ:128
+
+//Задание 4.5.1
+
+SQL запрос:
+
+SELECT s.fare_conditions,
+       count(s.fare_conditions) count_seats
+FROM dst_project.seats s
+WHERE s.aircraft_code = 'SU9'
+GROUP BY s.fare_conditions
+
+Ответ:Economy
+
+//Задание 4.5.2
+
+SQL запрос:
+SELECT min(b.total_amount)
+FROM dst_project.bookings b
+
+Ответ:3400
+
+//Задание 4.5.3
+
+SQL запрос:
+
+SELECT bp.seat_no,
+       t.passenger_id
+FROM dst_project.boarding_passes bp
+JOIN dst_project.tickets t ON bp.ticket_no = t.ticket_no
+WHERE t.passenger_id = '4313 788533'
+
+Ответ:2A
