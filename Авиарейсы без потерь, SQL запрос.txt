@@ -1,0 +1,76 @@
+/* 
+
+Расход топлива взят из разных официальных источников.
+Стоимость топлива взята офф. сайта единственно топливной компании Анапы (с учётом НДС)
+
+*/
+
+WITH general_flight_information AS
+  (SELECT fl.*,
+          EXTRACT(epoch
+                  FROM fl.actual_departure - fl.scheduled_departure)/60 AS departure_delay,
+          EXTRACT(epoch
+                  FROM fl.actual_arrival - fl.scheduled_arrival)/60 AS arrival_delay,
+          sum(tik_fl.amount) AS sum_price_tiket,
+          EXTRACT(epoch
+                  FROM fl.actual_arrival - fl.actual_departure)/3600 AS flight_time,
+          CASE
+              WHEN arcrft.model = 'Boeing 777-300' THEN 7800/1000. -- тонн топлива в час
+
+              WHEN arcrft.model = 'Boeing 767-300' THEN 4800/1000.
+              WHEN arcrft.model = 'Sukhoi Superjet-100' THEN 1700/1000.
+              WHEN arcrft.model = 'Airbus A320-200' THEN 2580/1000.
+              WHEN arcrft.model = 'Airbus A321-200' THEN 3200/1000.
+              WHEN arcrft.model = 'Airbus A319-100' THEN 2600/1000.
+              WHEN arcrft.model = 'Boeing 737-300' THEN 2600/1000.
+              WHEN arcrft.model = 'Cessna 208 Caravan' THEN 180/1000.
+              WHEN arcrft.model = 'Bombardier CRJ-200' THEN 1100/1000.
+          END AS tons_of_fuel_per_hour,
+          CASE
+              WHEN Extract(MONTH
+                           FROM fl.scheduled_departure::date) = 1 THEN 48893-- Январь 2017
+
+              WHEN Extract(MONTH
+                           FROM fl.scheduled_departure::date) = 2 THEN 46672 -- Февраль 2017
+
+              WHEN Extract(MONTH
+                           FROM fl.scheduled_departure::date) = 12 THEN 45863 -- Декабрь 2016
+
+          END AS price_per_tons_fuel_per_month
+   FROM dst_project.flights fl
+   LEFT JOIN dst_project.TICKET_FLIGHTS tik_fl ON fl.flight_id = tik_fl.flight_id
+   LEFT JOIN dst_project.aircrafts arcrft ON fl.aircraft_code = arcrft.aircraft_code
+   WHERE fl.departure_airport = 'AAQ'
+     AND Extract(MONTH
+                 FROM fl.scheduled_departure::date) in (1, 2 ,12)
+     AND fl.status not in ('Cancelled')
+   GROUP BY fl.flight_id,
+            tons_of_fuel_per_hour)
+SELECT gfi.flight_id, 					-- Идентификатор рейса
+       gfi.flight_no, 					-- Номер рейса
+       gfi.scheduled_departure, 			-- Запланированное время отправления
+       gfi.scheduled_arrival,				-- Запланированное время прибытия
+       gfi.departure_airport,				-- Аэропорт отправления
+       departure_airprts.city AS departure_city,	-- Город отправления
+       gfi.arrival_airport,				-- Аэропорт прибытия
+       arrival_airprts.city AS arrival_city,		-- Город прибытия
+       gfi.actual_departure,				-- Фактическое время отправления
+       gfi.actual_arrival,				-- Фактическое время отправления
+       gfi.departure_delay,				-- Время задержки отправления
+       gfi.arrival_delay,				-- Время задержки прибытия
+       gfi.sum_price_tiket,				-- Сумма билетов
+       gfi.flight_time,					-- Фактическое время в пути
+       gfi.tons_of_fuel_per_hour,			-- Расход топлива (тонн/час)
+       gfi.price_per_tons_fuel_per_month,		-- Цена тонны топлива в месяц вылета
+/* 
+Далее считается 
+
+	сosts_per_hour -- Расход в денежном выражении в час
+	flight_profit  -- Прибыль рейса (Сумма билетов -  время    полёта * расход топлива * цену топлива)
+
+*/
+       gfi.tons_of_fuel_per_hour * gfi.price_per_tons_fuel_per_month * gfi.flight_time AS сosts_per_hour, --  Расход в денежном выражении в час
+       coalesce(gfi.sum_price_tiket, 0) - (gfi.flight_time * gfi.tons_of_fuel_per_hour * gfi.price_per_tons_fuel_per_month) AS flight_profit
+FROM general_flight_information gfi
+LEFT JOIN dst_project.airports departure_airprts ON gfi.departure_airport = departure_airprts.airport_code
+LEFT JOIN dst_project.airports arrival_airprts ON gfi.arrival_airport = arrival_airprts.airport_code
